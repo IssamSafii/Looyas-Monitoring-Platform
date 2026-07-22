@@ -1,0 +1,6 @@
+package com.safistage.monitoring.panel;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PanelRepository extends JpaRepository<Panel, Long> {
+}

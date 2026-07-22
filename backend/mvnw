@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+if [ -n "$MAVEN_HOME" ]; then
+  exec "$MAVEN_HOME/bin/mvn" "$@"
+fi
+if [ -x "/c/Program Files/JetBrains/IntelliJ IDEA 2024.3.5/plugins/maven/lib/maven3/bin/mvn.cmd" ]; then
+  exec "/c/Program Files/JetBrains/IntelliJ IDEA 2024.3.5/plugins/maven/lib/maven3/bin/mvn.cmd" "$@"
+fi
+exec mvn "$@"

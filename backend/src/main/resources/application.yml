@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: safi-stage-monitoring-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/${POSTGRES_DB:safi_monitoring}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:safi}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:safi}}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+server:
+  port: 8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  jwt:
+    secret: ${JWT_SECRET:replace-with-a-long-random-secret}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:28800}
+  admin:
+    username: ${DEFAULT_ADMIN_USERNAME:admin}
+    password: ${DEFAULT_ADMIN_PASSWORD:admin}
+monitoring:
+  max-query-seconds: 86400
+  max-log-limit: 2000
+  request-timeout-seconds: 20
+  max-query-length: 4000
+  mimir:
+    api-prefix: ${MIMIR_API_PREFIX:/prometheus}
+    base-url: ${MIMIR_BASE_URL:}
+    tenant-id: ${MIMIR_TENANT_ID:}
+    username: ${MIMIR_USERNAME:}
+    password: ${MIMIR_PASSWORD:}
+    bearer-token: ${MIMIR_BEARER_TOKEN:}
+  loki:
+    api-prefix: ${LOKI_API_PREFIX:/loki}
+    base-url: ${LOKI_BASE_URL:}
+    tenant-id: ${LOKI_TENANT_ID:}
+    username: ${LOKI_USERNAME:}
+    password: ${LOKI_PASSWORD:}
+    bearer-token: ${LOKI_BEARER_TOKEN:}
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+logging:
+  level:
+    root: INFO
+    com.safistage.monitoring: INFO
