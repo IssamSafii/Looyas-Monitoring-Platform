@@ -5,16 +5,13 @@ import { PanelContainerComponent } from '../../shared/components/panel-container
 import { QueryEditorComponent } from '../../shared/components/query-editor.component';
 import { LogsViewerComponent } from '../../shared/components/logs-viewer.component';
 import { MonitoringService } from '../../core/services/monitoring.service';
-import { LogsResponse } from '../../core/models/monitoring.model';
+import { LogEntry, LogsResponse, LogStream } from '../../core/models/monitoring.model';
 import { TimeRangeService } from '../../core/services/time-range.service';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state.component';
 
-interface LogQueryExample {
-  label: string;
-  query: string;
-}
+type LogLevelFilter = 'ALL' | 'WARN' | 'ERROR';
 
 @Component({
   selector: 'app-logs-explorer-page',
@@ -35,7 +32,7 @@ interface LogQueryExample {
     <div class="page-header">
       <div>
         <h1 class="page-title">Logs Explorer</h1>
-        <div class="page-subtitle">Lecture LogQL compacte avec historique, synthese des streams et bloc JSON repliable.</div>
+        <div class="page-subtitle">Lecture LogQL centree sur le flux, avec plus d'espace pour lire les messages sans distraction.</div>
       </div>
     </div>
 
@@ -44,17 +41,8 @@ interface LogQueryExample {
         <app-panel-container title="Requete LogQL" subtitle="Le navigateur ne contacte jamais Loki directement.">
           <app-query-editor [value]="query" label="LogQL" (execute)="run($event)" (copy)="copy($event)"></app-query-editor>
 
-          <div class="query-meta">
+          <div class="query-meta" *ngIf="history.length">
             <div class="query-block">
-              <div class="meta-label">Exemples</div>
-              <div class="chip-row">
-                <button mat-stroked-button type="button" class="query-chip" *ngFor="let example of examples" (click)="applyExample(example.query)">
-                  {{ example.label }}
-                </button>
-              </div>
-            </div>
-
-            <div class="query-block" *ngIf="history.length">
               <div class="meta-label">Historique</div>
               <div class="chip-row">
                 <button mat-stroked-button type="button" class="query-chip history-chip" *ngFor="let item of history" (click)="applyExample(item)">
@@ -79,7 +67,7 @@ interface LogQueryExample {
       <div class="span-12" *ngIf="!loading && !errorMessage && !response">
         <app-empty-state
           title="Aucune requete executee."
-          description="Lance une requete LogQL pour afficher les streams, les labels et les messages de logs."
+          description="Lance une requete LogQL pour afficher un flux de logs lisible et bien organise."
         ></app-empty-state>
       </div>
 
@@ -92,34 +80,63 @@ interface LogQueryExample {
         </div>
 
         <ng-container *ngIf="currentResponse.streams.length">
-          <div class="span-4">
-            <app-panel-container title="Synthese" [subtitle]="'Periode active : ' + selectedRangeLabel">
-              <div class="stat-list">
-                <div class="stat-card">
+          <div class="span-12">
+            <app-panel-container title="Flux de logs" [subtitle]="'Periode active : ' + selectedRangeLabel">
+              <div class="stat-strip">
+                <div class="mini-stat">
                   <span>Streams</span>
-                  <strong>{{ currentResponse.streams.length }}</strong>
+                  <strong>{{ visibleStreamsCount }}</strong>
                 </div>
-                <div class="stat-card">
+                <div class="mini-stat">
                   <span>Entrees</span>
-                  <strong>{{ totalEntries }}</strong>
+                  <strong>{{ visibleEntriesCount }}</strong>
                 </div>
-                <div class="stat-card">
-                  <span>Historique</span>
-                  <strong>{{ history.length }}</strong>
+                <div class="mini-stat">
+                  <span>Filtre actif</span>
+                  <strong>{{ selectedFilterLabel }}</strong>
+                </div>
+                <div class="mini-stat">
+                  <span>Derniere requete</span>
+                  <strong class="query-preview">{{ query }}</strong>
                 </div>
               </div>
 
-              <div class="stream-resume">
-                <div class="stream-chip" *ngFor="let stream of currentResponse.streams.slice(0, 10)">
-                  {{ labelsSummary(stream.labels) }}
+              <div class="filter-toolbar">
+                <div class="meta-label">Filtrer les resultats</div>
+                <div class="filter-actions">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="filter-chip"
+                    [class.filter-chip-active]="selectedFilter === 'ALL'"
+                    (click)="setFilter('ALL')"
+                  >
+                    Tout
+                  </button>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="filter-chip filter-warn"
+                    [class.filter-chip-active]="selectedFilter === 'WARN'"
+                    (click)="setFilter('WARN')"
+                  >
+                    Warnings
+                  </button>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="filter-chip filter-error"
+                    [class.filter-chip-active]="selectedFilter === 'ERROR'"
+                    (click)="setFilter('ERROR')"
+                  >
+                    Erreurs
+                  </button>
                 </div>
               </div>
-            </app-panel-container>
-          </div>
 
-          <div class="span-8">
-            <app-panel-container title="Flux de logs" subtitle="Vue compacte optimisee pour lire rapidement.">
-              <app-logs-viewer [streams]="currentResponse.streams"></app-logs-viewer>
+              <div class="logs-frame">
+                <app-logs-viewer [streams]="filteredStreams"></app-logs-viewer>
+              </div>
             </app-panel-container>
           </div>
 
@@ -161,41 +178,70 @@ interface LogQueryExample {
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .stat-list {
+    .stat-strip {
       display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.75rem;
     }
-    .stat-card {
+    .mini-stat {
       display: grid;
       gap: 0.2rem;
-      padding: 0.8rem 0.9rem;
+      padding: 0.85rem 0.9rem;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-md);
       background: rgba(255, 255, 255, 0.03);
+      min-width: 0;
     }
-    .stat-card span {
+    .mini-stat span {
       color: var(--text-secondary);
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
-    .stat-card strong {
-      font-size: 1.05rem;
+    .mini-stat strong {
+      font-size: 1rem;
       font-weight: 700;
     }
-    .stream-resume {
+    .query-preview {
+      display: block;
+      font-size: 0.9rem;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .filter-toolbar {
       display: grid;
       gap: 0.55rem;
     }
-    .stream-chip {
-      padding: 0.72rem 0.82rem;
+    .filter-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+    .filter-chip {
+      min-height: 36px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+    }
+    .filter-chip-active {
+      border-color: rgba(124, 140, 255, 0.6) !important;
+      background: rgba(124, 140, 255, 0.14) !important;
+    }
+    .filter-warn.filter-chip-active {
+      border-color: rgba(255, 180, 84, 0.56) !important;
+      background: rgba(255, 180, 84, 0.12) !important;
+    }
+    .filter-error.filter-chip-active {
+      border-color: rgba(255, 107, 107, 0.56) !important;
+      background: rgba(255, 107, 107, 0.12) !important;
+    }
+    .logs-frame {
+      min-width: 0;
+      padding: 0.35rem;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      font-size: 0.78rem;
-      line-height: 1.45;
-      background: rgba(255, 255, 255, 0.03);
-      word-break: break-word;
+      background: rgba(5, 10, 18, 0.35);
     }
     .raw-panel {
       border: 1px solid var(--border-soft);
@@ -219,6 +265,19 @@ interface LogQueryExample {
       line-height: 1.5;
       overflow: auto;
     }
+    @media (max-width: 960px) {
+      .stat-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 720px) {
+      .stat-strip {
+        grid-template-columns: 1fr;
+      }
+      .query-preview {
+        white-space: normal;
+      }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -229,11 +288,7 @@ export class LogsExplorerPageComponent {
   protected loading = false;
   protected errorMessage = '';
   protected errorDetails = '';
-  protected readonly examples: LogQueryExample[] = [
-    { label: 'Tous les jobs', query: '{job=~".+"}' },
-    { label: 'Erreurs', query: '{job=~".+"} |= "ERROR"' },
-    { label: 'Warnings', query: '{job=~".+"} |= "WARN"' }
-  ];
+  protected selectedFilter: LogLevelFilter = 'ALL';
 
   private lastExecutedQuery = this.query;
 
@@ -303,15 +358,47 @@ export class LogsExplorerPageComponent {
     void navigator.clipboard.writeText(query);
   }
 
-  protected labelsSummary(labels: Record<string, string>): string {
-    const entries = Object.entries(labels);
-    return entries.length
-      ? entries.map(([key, value]) => `${key}=${value}`).join(', ')
-      : 'Aucun label';
+  protected setFilter(filter: LogLevelFilter): void {
+    this.selectedFilter = filter;
+    this.cdr.markForCheck();
   }
 
   protected get totalEntries(): number {
     return (this.response?.streams ?? []).reduce((total, stream) => total + stream.entries.length, 0);
+  }
+
+  protected get filteredStreams(): LogStream[] {
+    const streams = this.response?.streams ?? [];
+
+    if (this.selectedFilter === 'ALL') {
+      return streams;
+    }
+
+    return streams
+      .map((stream) => ({
+        ...stream,
+        entries: stream.entries.filter((entry) => this.matchesFilter(entry))
+      }))
+      .filter((stream) => stream.entries.length > 0);
+  }
+
+  protected get visibleStreamsCount(): number {
+    return this.filteredStreams.length;
+  }
+
+  protected get visibleEntriesCount(): number {
+    return this.filteredStreams.reduce((total, stream) => total + stream.entries.length, 0);
+  }
+
+  protected get selectedFilterLabel(): string {
+    switch (this.selectedFilter) {
+      case 'WARN':
+        return 'Warnings';
+      case 'ERROR':
+        return 'Erreurs';
+      default:
+        return 'Tout';
+    }
   }
 
   protected get selectedRangeLabel(): string {
@@ -326,6 +413,10 @@ export class LogsExplorerPageComponent {
   private readHistory(): string[] {
     const value = localStorage.getItem('logs-history');
     return value ? (JSON.parse(value) as string[]) : [];
+  }
+
+  private matchesFilter(entry: LogEntry): boolean {
+    return (entry.level || 'INFO').toUpperCase() === this.selectedFilter;
   }
 
   private extractErrorMessage(error: unknown): string {

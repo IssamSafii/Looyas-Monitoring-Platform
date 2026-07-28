@@ -24,21 +24,51 @@ export class TimeSeriesChartComponent {
   @Input() title = '';
   @Input() unit = '';
   @Input() series: MetricSeries[] = [];
+  @Input() palette: string[] = ['#7c8cff', '#4cc9f0', '#7bd88f', '#ffb454', '#ff6b6b', '#c792ea'];
 
   get option(): EChartsOption {
     return {
-      tooltip: { trigger: 'axis' },
-      legend: { textStyle: { color: '#e8eef8' } },
-      xAxis: { type: 'time', axisLabel: { color: '#9eabc2' } },
-      yAxis: { type: 'value', axisLabel: { color: '#9eabc2', formatter: `{value}${this.unit ? ` ${this.unit}` : ''}` } },
-      grid: { left: 28, right: 20, top: 36, bottom: 28, containLabel: true },
+      color: this.palette,
+      animation: false,
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(16, 26, 45, 0.96)',
+        borderColor: 'rgba(148, 163, 184, 0.18)',
+        textStyle: { color: '#e8eef8' },
+        confine: true
+      },
+      legend: { show: false },
+      xAxis: {
+        type: 'time',
+        axisLabel: { color: '#9eabc2' },
+        axisLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.18)' } },
+        splitLine: { show: false }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#9eabc2', formatter: `{value}${this.unit ? ` ${this.unit}` : ''}` },
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.16)' } }
+      },
+      grid: { left: 18, right: 18, top: 18, bottom: 42, containLabel: true },
+      dataZoom: [
+        {
+          type: 'inside',
+          zoomLock: false
+        }
+      ],
       series: this.series.map((item) => ({
-        name: item.name,
+        name: this.displayName(item),
         type: 'line',
         smooth: true,
         showSymbol: false,
+        lineStyle: { width: 2 },
         data: item.points.map((point) => [point.timestamp, point.value])
       }))
     };
+  }
+
+  private displayName(series: MetricSeries): string {
+    return series.name || series.labels['pod'] || series.labels['node'] || series.labels['instance'] || 'Serie sans nom';
   }
 }

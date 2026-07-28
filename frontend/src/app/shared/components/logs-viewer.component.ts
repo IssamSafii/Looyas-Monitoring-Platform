@@ -35,14 +35,18 @@ import { EmptyStateComponent } from './empty-state.component';
   styles: [`
     .streams {
       display: grid;
-      gap: 1rem;
-      max-height: 920px;
+      gap: 1.1rem;
+      max-height: 980px;
       overflow: auto;
-      padding-right: 0.15rem;
+      padding: 0.1rem 0.2rem 0.1rem 0.1rem;
     }
     .stream {
       display: grid;
-      gap: 0.65rem;
+      gap: 0.8rem;
+      padding: 0.9rem;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.025);
     }
     .labels {
       display: flex;
@@ -52,8 +56,8 @@ import { EmptyStateComponent } from './empty-state.component';
     .entry {
       padding: 0.72rem 0.82rem;
       border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.025);
+      border-radius: calc(var(--radius-md) - 2px);
+      background: rgba(8, 14, 25, 0.46);
     }
     .entry.error {
       border-color: rgba(255, 107, 107, 0.26);
@@ -98,6 +102,15 @@ import { EmptyStateComponent } from './empty-state.component';
       font-family: Consolas, "Courier New", monospace;
       font-size: 0.82rem;
       line-height: 1.55;
+    }
+    @media (max-width: 720px) {
+      .stream {
+        padding: 0.75rem;
+      }
+      .entry-meta {
+        display: grid;
+        justify-content: stretch;
+      }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush

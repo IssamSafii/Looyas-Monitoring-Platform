@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
-import { JsonPipe, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { PanelContainerComponent } from '../../shared/components/panel-container.component';
 import { QueryEditorComponent } from '../../shared/components/query-editor.component';
@@ -11,18 +11,12 @@ import { LoadingSkeletonComponent } from '../../shared/components/loading-skelet
 import { EmptyStateComponent } from '../../shared/components/empty-state.component';
 import { ErrorStateComponent } from '../../shared/components/error-state.component';
 
-interface QueryExample {
-  label: string;
-  query: string;
-}
-
 @Component({
   selector: 'app-metrics-explorer-page',
   standalone: true,
   imports: [
     NgIf,
     NgFor,
-    JsonPipe,
     MatButtonModule,
     PanelContainerComponent,
     QueryEditorComponent,
@@ -35,7 +29,7 @@ interface QueryExample {
     <div class="page-header">
       <div>
         <h1 class="page-title">Metrics Explorer</h1>
-        <div class="page-subtitle">Executer une requete PromQL, lire les series rapidement et verifier le JSON brut sans quitter la page.</div>
+        <div class="page-subtitle">Lecture PromQL concentree sur le graphe, les indicateurs clefs et un apercu propre des series.</div>
       </div>
     </div>
 
@@ -44,17 +38,8 @@ interface QueryExample {
         <app-panel-container title="Requete PromQL" subtitle="Les appels passent uniquement par le backend Spring Boot.">
           <app-query-editor [value]="query" label="PromQL" (execute)="run($event)" (copy)="copy($event)"></app-query-editor>
 
-          <div class="query-meta">
+          <div class="query-meta" *ngIf="history.length">
             <div class="query-block">
-              <div class="meta-label">Exemples</div>
-              <div class="chip-row">
-                <button mat-stroked-button type="button" class="query-chip" *ngFor="let example of examples" (click)="applyExample(example.query)">
-                  {{ example.label }}
-                </button>
-              </div>
-            </div>
-
-            <div class="query-block" *ngIf="history.length">
               <div class="meta-label">Historique</div>
               <div class="chip-row">
                 <button mat-stroked-button type="button" class="query-chip history-chip" *ngFor="let item of history" (click)="applyExample(item)">
@@ -79,7 +64,7 @@ interface QueryExample {
       <div class="span-12" *ngIf="!loading && !errorMessage && !response">
         <app-empty-state
           title="Aucune requete executee."
-          description="Choisis une requete PromQL puis lance Executer pour afficher le graphique, les series et le tableau."
+          description="Choisis une requete PromQL puis lance Executer pour afficher une visualisation claire des series."
         ></app-empty-state>
       </div>
 
@@ -92,73 +77,69 @@ interface QueryExample {
         </div>
 
         <ng-container *ngIf="currentResponse.series.length">
-          <div class="span-8">
+          <div class="span-12">
             <app-panel-container title="Visualisation" [subtitle]="'Periode active : ' + selectedRangeLabel">
-              <div class="stat-strip">
-                <div class="mini-stat">
-                  <span>Series</span>
-                  <strong>{{ currentResponse.series.length }}</strong>
-                </div>
-                <div class="mini-stat">
-                  <span>Points</span>
-                  <strong>{{ totalPoints }}</strong>
-                </div>
-                <div class="mini-stat">
-                  <span>Requete</span>
-                  <strong>{{ currentResponse.resultType }}</strong>
-                </div>
-              </div>
-
-              <app-time-series-chart [series]="currentResponse.series"></app-time-series-chart>
-            </app-panel-container>
-          </div>
-
-          <div class="span-4">
-            <app-panel-container title="Resume des series" subtitle="Lecture rapide des premieres courbes.">
-              <div class="series-list">
-                <div class="series-card" *ngFor="let series of currentResponse.series.slice(0, 8)">
-                  <div class="series-head">
-                    <strong>{{ displayName(series) }}</strong>
-                    <span>{{ series.points.length }} pts</span>
+              <div class="visualization-layout">
+                <div class="stat-strip">
+                  <div class="mini-stat">
+                    <span>Series</span>
+                    <strong>{{ currentResponse.series.length }}</strong>
                   </div>
-                  <div class="series-value">{{ lastValue(series) }}</div>
-                  <div class="series-labels">{{ labelsSummary(series.labels) }}</div>
+                  <div class="mini-stat">
+                    <span>Points</span>
+                    <strong>{{ totalPoints }}</strong>
+                  </div>
+                  <div class="mini-stat">
+                    <span>Type</span>
+                    <strong>{{ currentResponse.resultType }}</strong>
+                  </div>
+                  <div class="mini-stat">
+                    <span>Derniere requete</span>
+                    <strong class="query-preview">{{ query }}</strong>
+                  </div>
                 </div>
-              </div>
-            </app-panel-container>
-          </div>
 
-          <div class="span-12">
-            <app-panel-container title="Tableau des resultats" subtitle="Derniere valeur, nombre de points et labels associes.">
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Serie</th>
-                      <th>Derniere valeur</th>
-                      <th>Points</th>
-                      <th>Labels</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let series of currentResponse.series">
-                      <td class="series-name">{{ displayName(series) }}</td>
-                      <td class="monospace">{{ lastValue(series) }}</td>
-                      <td>{{ series.points.length }}</td>
-                      <td class="labels-cell">{{ labelsSummary(series.labels) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </app-panel-container>
-          </div>
+                <div class="chart-frame">
+                  <app-time-series-chart [series]="currentResponse.series" [palette]="seriesPalette"></app-time-series-chart>
+                </div>
 
-          <div class="span-12">
-            <app-panel-container title="JSON brut" subtitle="Pratique pour verifier la normalisation retour backend.">
-              <details class="raw-panel">
-                <summary>Afficher la reponse JSON</summary>
-                <pre class="monospace raw-json">{{ currentResponse | json }}</pre>
-              </details>
+                <section class="visualization-sidebar">
+                  <div class="sidebar-header">
+                    <div>
+                      <div class="sidebar-title">Series principales</div>
+                      <div class="sidebar-subtitle">Lecture rapide des courbes les plus visibles.</div>
+                    </div>
+                    <div class="chip">{{ visibleSeriesCount }} affichees</div>
+                  </div>
+
+                  <div class="series-overview">
+                    <article class="series-overview-card" *ngFor="let series of visibleSeries">
+                      <div class="series-overview-head">
+                        <div class="series-name-row">
+                          <span class="series-swatch" [style.background]="seriesColor(series)"></span>
+                          <strong>{{ displayName(series) }}</strong>
+                        </div>
+                        <span>{{ series.points.length }} pts</span>
+                      </div>
+
+                      <div class="series-metrics">
+                        <div>
+                          <span>Derniere valeur</span>
+                          <strong>{{ lastValue(series) }}</strong>
+                        </div>
+                        <div>
+                          <span>Label cle</span>
+                          <strong>{{ primaryLabel(series.labels) }}</strong>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+
+                  <div class="series-footnote" *ngIf="currentResponse.series.length > visibleSeriesCount">
+                    + {{ currentResponse.series.length - visibleSeriesCount }} autres series restent visibles dans le graphe.
+                  </div>
+                </section>
+              </div>
             </app-panel-container>
           </div>
         </ng-container>
@@ -191,18 +172,51 @@ interface QueryExample {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .visualization-layout {
+      display: grid;
+      gap: 1rem;
+      align-items: start;
+    }
+    .visualization-sidebar {
+      display: grid;
+      gap: 0.9rem;
+      min-width: 0;
+      padding: 0.95rem;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+        rgba(8, 14, 25, 0.42);
+    }
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .sidebar-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+    }
+    .sidebar-subtitle {
+      margin-top: 0.2rem;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
     .stat-strip {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.75rem;
     }
     .mini-stat {
       display: grid;
       gap: 0.2rem;
-      padding: 0.8rem 0.9rem;
+      padding: 0.85rem 0.9rem;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-md);
       background: rgba(255, 255, 255, 0.03);
+      min-width: 0;
     }
     .mini-stat span {
       color: var(--text-secondary);
@@ -214,107 +228,110 @@ interface QueryExample {
       font-size: 1rem;
       font-weight: 700;
     }
-    .series-list {
+    .query-preview {
+      display: block;
+      font-size: 0.9rem;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chart-frame {
+      min-width: 0;
+      padding: 0.35rem 0.35rem 0.15rem;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      background: rgba(5, 10, 18, 0.35);
+    }
+    .series-overview {
       display: grid;
       gap: 0.75rem;
     }
-    .series-card {
+    .series-overview-card {
       display: grid;
-      gap: 0.35rem;
-      padding: 0.85rem 0.95rem;
+      gap: 0.7rem;
+      padding: 0.85rem;
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-md);
       background: rgba(255, 255, 255, 0.03);
     }
-    .series-head {
+    .series-overview-head {
       display: flex;
       justify-content: space-between;
       gap: 0.75rem;
       font-size: 0.82rem;
+      align-items: center;
     }
-    .series-head strong {
+    .series-overview-head strong,
+    .series-overview-head span {
       min-width: 0;
+    }
+    .series-overview-head span {
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .series-name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+    }
+    .series-name-row strong {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .series-head span {
+    .series-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+    }
+    .series-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+    .series-metrics div {
+      display: grid;
+      gap: 0.22rem;
+      min-width: 0;
+    }
+    .series-metrics span {
       color: var(--text-secondary);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .series-metrics strong {
+      font-size: 0.92rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .series-value {
-      font-size: 1.25rem;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    .series-labels {
+    .series-footnote {
       color: var(--text-secondary);
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       line-height: 1.45;
-      word-break: break-word;
     }
-    .table-wrapper {
-      overflow: auto;
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 760px;
-    }
-    th,
-    td {
-      padding: 0.78rem 0.9rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border-soft);
-      font-size: 0.85rem;
-      vertical-align: top;
-    }
-    th {
-      color: var(--text-secondary);
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      background: rgba(255, 255, 255, 0.03);
-    }
-    .series-name {
-      font-weight: 600;
-    }
-    .labels-cell {
-      color: var(--text-secondary);
-      max-width: 520px;
-      word-break: break-word;
-    }
-    .raw-panel {
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      background: rgba(8, 14, 25, 0.48);
-      overflow: hidden;
-    }
-    .raw-panel summary {
-      cursor: pointer;
-      padding: 0.85rem 1rem;
-      font-weight: 600;
-      list-style: none;
-    }
-    .raw-panel summary::-webkit-details-marker {
-      display: none;
-    }
-    .raw-json {
-      margin: 0;
-      padding: 0 1rem 1rem;
-      font-size: 0.76rem;
-      line-height: 1.5;
-      overflow: auto;
-    }
-    @media (max-width: 960px) {
+    @media (max-width: 1180px) {
       .stat-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 720px) {
+      .stat-strip,
+      .series-metrics {
         grid-template-columns: 1fr;
       }
-      table {
-        min-width: 640px;
+      .sidebar-header,
+      .series-overview-head {
+        display: grid;
+      }
+      .query-preview {
+        white-space: normal;
       }
     }
   `],
@@ -327,11 +344,7 @@ export class MetricsExplorerPageComponent {
   protected loading = false;
   protected errorMessage = '';
   protected errorDetails = '';
-  protected readonly examples: QueryExample[] = [
-    { label: 'CPU pods', query: 'sum(rate(container_cpu_usage_seconds_total[5m])) by (pod)' },
-    { label: 'Memoire pods', query: 'sum(container_memory_working_set_bytes) by (pod)' },
-    { label: 'Nodes ready', query: 'sum(kube_node_status_condition{condition="Ready",status="true"})' }
-  ];
+  protected readonly seriesPalette = ['#7c8cff', '#4cc9f0', '#7bd88f', '#ffb454', '#ff6b6b', '#c792ea', '#5eead4', '#f472b6'];
 
   private lastExecutedQuery = this.query;
 
@@ -403,16 +416,29 @@ export class MetricsExplorerPageComponent {
     return series.name || series.labels['pod'] || series.labels['node'] || series.labels['instance'] || 'Serie sans nom';
   }
 
-  protected labelsSummary(labels: Record<string, string>): string {
-    const entries = Object.entries(labels);
-    return entries.length
-      ? entries.map(([key, value]) => `${key}=${value}`).join(', ')
-      : 'Aucun label';
-  }
-
   protected lastValue(series: MetricSeries): string {
     const value = [...series.points].reverse().find((point) => point.value !== null)?.value;
     return value == null ? '-' : this.formatNumber(value);
+  }
+
+  protected primaryLabel(labels: Record<string, string>): string {
+    const preferredKeys = ['pod', 'node', 'instance', 'job', 'namespace'];
+    const key = preferredKeys.find((entry) => labels[entry]) ?? Object.keys(labels)[0];
+
+    return key ? `${key}=${labels[key]}` : 'Aucun label';
+  }
+
+  protected seriesColor(series: MetricSeries): string {
+    const index = this.visibleSeries.findIndex((item) => item === series);
+    return this.seriesPalette[(index === -1 ? 0 : index) % this.seriesPalette.length];
+  }
+
+  protected get visibleSeries(): MetricSeries[] {
+    return (this.response?.series ?? []).slice(0, 6);
+  }
+
+  protected get visibleSeriesCount(): number {
+    return this.visibleSeries.length;
   }
 
   protected get totalPoints(): number {
