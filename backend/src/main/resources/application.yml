@@ -55,6 +55,18 @@ monitoring:
     username: ${LOKI_USERNAME:}
     password: ${LOKI_PASSWORD:}
     bearer-token: ${LOKI_BEARER_TOKEN:}
+oci:
+  enabled: ${OCI_ENABLED:false}
+  config-file: ${OCI_CONFIG_FILE:/app/.oci/config}
+  profile: ${OCI_PROFILE:DEFAULT}
+  region: ${OCI_REGION:}
+  compartment-id: ${OCI_COMPARTMENT_ID:}
+  default-metric-namespace: ${OCI_DEFAULT_METRIC_NAMESPACE:oci_computeagent}
+  query-timeout-seconds: ${OCI_QUERY_TIMEOUT_SECONDS:30}
+  max-query-range-hours: ${OCI_MAX_QUERY_RANGE_HOURS:168}
+  log-limit: ${OCI_LOG_LIMIT:500}
+  log-max-limit: ${OCI_LOG_MAX_LIMIT:2000}
+  include-subcompartments: ${OCI_INCLUDE_SUBCOMPARTMENTS:false}
 springdoc:
   api-docs:
     path: /v3/api-docs

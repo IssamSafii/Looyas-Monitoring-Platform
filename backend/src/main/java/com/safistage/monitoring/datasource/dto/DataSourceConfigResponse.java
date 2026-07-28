@@ -3,6 +3,8 @@ package com.safistage.monitoring.datasource.dto;
 import com.safistage.monitoring.datasource.AuthenticationType;
 import com.safistage.monitoring.datasource.DataSourceType;
 
+import java.time.Instant;
+
 public record DataSourceConfigResponse(
         Long id,
         String name,
@@ -14,6 +16,14 @@ public record DataSourceConfigResponse(
         String username,
         String maskedPassword,
         String maskedToken,
-        boolean enabled
+        String region,
+        String maskedCompartmentId,
+        String profile,
+        String configFile,
+        String defaultMetricNamespace,
+        boolean includeSubcompartments,
+        boolean enabled,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

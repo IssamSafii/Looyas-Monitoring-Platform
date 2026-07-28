@@ -90,8 +90,8 @@ import { ErrorStateComponent } from '../../shared/components/error-state.compone
                     <strong>{{ totalPoints }}</strong>
                   </div>
                   <div class="mini-stat">
-                    <span>Type</span>
-                    <strong>{{ currentResponse.resultType }}</strong>
+                    <span>Unite</span>
+                    <strong>{{ inferredUnitLabel }}</strong>
                   </div>
                   <div class="mini-stat">
                     <span>Derniere requete</span>
@@ -100,7 +100,7 @@ import { ErrorStateComponent } from '../../shared/components/error-state.compone
                 </div>
 
                 <div class="chart-frame">
-                  <app-time-series-chart [series]="currentResponse.series" [palette]="seriesPalette"></app-time-series-chart>
+                  <app-time-series-chart [series]="currentResponse.series" [palette]="seriesPalette" [unit]="chartUnit"></app-time-series-chart>
                 </div>
 
                 <section class="visualization-sidebar">
@@ -418,7 +418,7 @@ export class MetricsExplorerPageComponent {
 
   protected lastValue(series: MetricSeries): string {
     const value = [...series.points].reverse().find((point) => point.value !== null)?.value;
-    return value == null ? '-' : this.formatNumber(value);
+    return value == null ? '-' : this.formatValueWithUnit(value);
   }
 
   protected primaryLabel(labels: Record<string, string>): string {
@@ -445,12 +445,93 @@ export class MetricsExplorerPageComponent {
     return (this.response?.series ?? []).reduce((total, series) => total + series.points.length, 0);
   }
 
+  protected get inferredUnitLabel(): string {
+    return this.resolveMetricUnit().label;
+  }
+
+  protected get chartUnit(): string {
+    return this.resolveMetricUnit().chartUnit;
+  }
+
   protected get selectedRangeLabel(): string {
     return this.timeRangeService.selected().label;
   }
 
   private formatNumber(value: number): string {
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(value);
+  }
+
+  private formatValueWithUnit(value: number): string {
+    const unit = this.resolveMetricUnit();
+
+    switch (unit.kind) {
+      case 'bytes':
+        return this.formatBytes(value);
+      case 'cpu':
+        return `${this.formatNumber(value)} ${unit.label}`;
+      case 'percent':
+        return `${this.formatNumber(value)} ${unit.label}`;
+      case 'seconds':
+        return `${this.formatNumber(value)} ${unit.label}`;
+      case 'count':
+        return `${this.formatInteger(value)} ${unit.label}`;
+      default:
+        return unit.label === 'valeur' ? this.formatNumber(value) : `${this.formatNumber(value)} ${unit.label}`;
+    }
+  }
+
+  private formatBytes(value: number): string {
+    const gib = value / (1024 ** 3);
+    if (gib >= 1) {
+      return `${this.formatNumber(gib)} GiB`;
+    }
+
+    const mib = value / (1024 ** 2);
+    if (mib >= 1) {
+      return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(mib)} MiB`;
+    }
+
+    const kib = value / 1024;
+    if (kib >= 1) {
+      return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(kib)} KiB`;
+    }
+
+    return `${this.formatInteger(value)} B`;
+  }
+
+  private formatInteger(value: number): string {
+    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value);
+  }
+
+  private resolveMetricUnit(): { kind: 'bytes' | 'cpu' | 'percent' | 'seconds' | 'count' | 'generic'; label: string; chartUnit: string } {
+    const normalizedQuery = this.query.toLowerCase();
+
+    if (normalizedQuery.includes('_bytes') || normalizedQuery.includes('memory_') || normalizedQuery.includes('working_set')) {
+      return { kind: 'bytes', label: 'GiB', chartUnit: 'B' };
+    }
+
+    if (normalizedQuery.includes('container_cpu_usage_seconds_total') || normalizedQuery.includes('rate(') && normalizedQuery.includes('cpu')) {
+      return { kind: 'cpu', label: 'CPU', chartUnit: 'CPU' };
+    }
+
+    if (normalizedQuery.includes('%') || normalizedQuery.includes(' 100 *') || normalizedQuery.startsWith('100 *') || normalizedQuery.includes('percentage')) {
+      return { kind: 'percent', label: '%', chartUnit: '%' };
+    }
+
+    if (normalizedQuery.includes('_seconds') || normalizedQuery.includes('duration')) {
+      return { kind: 'seconds', label: 's', chartUnit: 's' };
+    }
+
+    if (
+      normalizedQuery.includes('count(') ||
+      normalizedQuery.includes('sum(') ||
+      normalizedQuery.includes('kube_node_info') ||
+      normalizedQuery.includes('kube_pod_status_phase')
+    ) {
+      return { kind: 'count', label: 'items', chartUnit: '' };
+    }
+
+    return { kind: 'generic', label: 'valeur', chartUnit: '' };
   }
 
   private persistHistory(query: string): void {

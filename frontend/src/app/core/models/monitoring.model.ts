@@ -7,6 +7,7 @@ export interface MetricSeries {
   name: string;
   labels: Record<string, string>;
   points: MetricPoint[];
+  color?: string;
 }
 
 export interface MetricsResponse {

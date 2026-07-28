@@ -1,5 +1,7 @@
 @use '@angular/material' as mat;
 
+@include mat.core();
+
 $theme: mat.define-theme((
   color: (
     theme-type: dark,

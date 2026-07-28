@@ -13,6 +13,10 @@ export const appRoutes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'overview' },
       { path: 'overview', loadComponent: () => import('./features/overview/overview-page.component').then((m) => m.OverviewPageComponent) },
+      { path: 'oci', loadComponent: () => import('./features/oci/oci-overview-page.component').then((m) => m.OciOverviewPageComponent) },
+      { path: 'oci/compute', loadComponent: () => import('./features/oci/oci-compute-page.component').then((m) => m.OciComputePageComponent) },
+      { path: 'oci/metrics', loadComponent: () => import('./features/oci/oci-metrics-explorer-page.component').then((m) => m.OciMetricsExplorerPageComponent) },
+      { path: 'oci/logs', loadComponent: () => import('./features/oci/oci-logs-explorer-page.component').then((m) => m.OciLogsExplorerPageComponent) },
       { path: 'infrastructure', loadComponent: () => import('./features/infrastructure/infrastructure-page.component').then((m) => m.InfrastructurePageComponent) },
       { path: 'kubernetes', loadComponent: () => import('./features/kubernetes/kubernetes-page.component').then((m) => m.KubernetesPageComponent) },
       { path: 'metrics-explorer', loadComponent: () => import('./features/metrics-explorer/metrics-explorer-page.component').then((m) => m.MetricsExplorerPageComponent) },

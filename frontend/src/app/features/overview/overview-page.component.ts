@@ -83,7 +83,7 @@ interface StatView {
 
       <div class="span-6">
         <app-panel-container title="Memoire globale" subtitle="Volume total observe via working set.">
-          <app-time-series-chart [series]="memorySeries" unit="B"></app-time-series-chart>
+          <app-time-series-chart [series]="memorySeries" unit="GB"></app-time-series-chart>
         </app-panel-container>
       </div>
 
@@ -259,7 +259,7 @@ export class OverviewPageComponent implements OnInit {
     { title: 'Nodes', description: 'Nombre de noeuds visibles dans le cluster.', unit: 'nodes', value: '-', loading: true, noData: false },
     { title: 'Pods running', description: 'Pods actuellement en phase Running.', unit: 'pods', value: '-', loading: true, noData: false },
     { title: 'CPU totale', description: 'Consommation totale des containers sur la periode.', unit: 'CPU', value: '-', loading: true, noData: false },
-    { title: 'Memoire totale', description: 'Working set total des containers.', unit: 'GiB', value: '-', loading: true, noData: false },
+    { title: 'Memoire totale', description: 'Working set total des containers.', unit: 'GB', value: '-', loading: true, noData: false },
     { title: 'Logs recents', description: "Nombre d'entrees observees dans Loki.", unit: 'logs', value: '-', loading: true, noData: false }
   ];
 
@@ -334,7 +334,7 @@ export class OverviewPageComponent implements OnInit {
       this.lastRefresh = new Date();
       this.health = result.health.components;
       this.cpuSeries = result.cpuSeries?.series ?? [];
-      this.memorySeries = result.memorySeries?.series ?? [];
+      this.memorySeries = this.convertSeriesToGb(result.memorySeries?.series ?? []);
       this.recentLogs = result.recentLogs?.streams ?? [];
       this.logVolumeSeries = this.logsToSeries(result.recentLogs, start.getTime(), end.getTime());
 
@@ -342,7 +342,7 @@ export class OverviewPageComponent implements OnInit {
       this.applyStat(1, result.nodes, (value) => this.formatInteger(value));
       this.applyStat(2, result.podsRunning, (value) => this.formatInteger(value));
       this.applyStat(3, result.cpuStat, (value) => this.formatDecimal(value, 2));
-      this.applyStat(4, result.memoryStat, (value) => this.formatBytesToGiB(value));
+      this.applyStat(4, result.memoryStat, (value) => this.formatBytesToGb(value));
 
       this.stats[5].loading = false;
       this.stats[5].value = this.formatInteger(this.recentLogs.reduce((acc, stream) => acc + stream.entries.length, 0));
@@ -396,8 +396,18 @@ export class OverviewPageComponent implements OnInit {
     return new Intl.NumberFormat('fr-FR', { maximumFractionDigits }).format(value);
   }
 
-  private formatBytesToGiB(value: number): string {
-    const gib = value / (1024 ** 3);
-    return this.formatDecimal(gib, 2);
+  private convertSeriesToGb(series: MetricSeries[]): MetricSeries[] {
+    return series.map((item) => ({
+      ...item,
+      points: item.points.map((point) => ({
+        ...point,
+        value: point.value == null ? null : point.value / (1024 ** 3)
+      }))
+    }));
+  }
+
+  private formatBytesToGb(value: number): string {
+    const gb = value / (1024 ** 3);
+    return this.formatDecimal(gb, 2);
   }
 }

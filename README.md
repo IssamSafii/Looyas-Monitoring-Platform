@@ -1,35 +1,45 @@
 # Safi Stage Monitoring Platform
 
-Application web locale de monitoring pour interroger Grafana Mimir et Grafana Loki via un backend Spring Boot sécurisé, puis afficher métriques, logs et dashboards natifs dans une interface Angular moderne.
+Application locale de monitoring avec:
+
+- frontend Angular
+- backend Spring Boot 3 + JWT
+- PostgreSQL
+- Grafana Mimir pour les metriques
+- Grafana Loki pour les logs
+- Oracle Cloud Infrastructure pour les metriques, logs et instances Compute
 
 ## Architecture
 
 ```text
 safi-stage-monitoring/
-├── backend/      # Spring Boot 3, JWT, JPA, Flyway, PostgreSQL, Mimir/Loki clients
-├── frontend/     # Angular standalone, Material, ngx-echarts
-├── docker-compose.yml
-├── .env.example
-├── README.md
-└── docs/
+|-- backend/
+|-- frontend/
+|-- docker-compose.yml
+|-- .env.example
+|-- README.md
+`-- docs/
 ```
 
-Flux réseau imposé:
+Flux reseau:
 
 ```text
-Angular -> Backend Spring Boot -> Mimir / Loki
+Angular -> Backend Spring Boot -> Mimir / Loki / OCI
 ```
 
-## Prérequis
+Le frontend ne contacte jamais OCI directement.
 
-- Java 17+ localement pour ce dépôt
-- Maven via `backend/mvnw.cmd` ou `backend/mvnw`
+## Prerequis
+
+- Java 17+
 - Node.js 20+
-- PostgreSQL 16+ si vous ne passez pas par Docker
+- Docker Desktop si vous utilisez Compose
 
-## Variables d’environnement
+## Variables d'environnement
 
-Copier `.env.example` vers `.env`, puis compléter les valeurs réelles:
+Copier `.env.example` vers `.env`, puis completer les valeurs reelles.
+
+Variables principales:
 
 ```env
 POSTGRES_DB=safi_monitoring
@@ -56,23 +66,44 @@ LOKI_USERNAME=
 LOKI_PASSWORD=
 LOKI_BEARER_TOKEN=
 
+OCI_ENABLED=false
+OCI_HOST_CONFIG_DIR=C:/Users/Safi/.oci-safi-monitoring
+OCI_CONFIG_FILE=/app/.oci/config
+OCI_PROFILE=DEFAULT
+OCI_REGION=
+OCI_COMPARTMENT_ID=
+OCI_DEFAULT_METRIC_NAMESPACE=oci_computeagent
+OCI_QUERY_TIMEOUT_SECONDS=30
+OCI_MAX_QUERY_RANGE_HOURS=168
+OCI_LOG_LIMIT=500
+OCI_LOG_MAX_LIMIT=2000
+OCI_INCLUDE_SUBCOMPARTMENTS=false
+
 FRONTEND_URL=http://localhost:4200
 BACKEND_URL=http://localhost:8080
 ```
 
-## Démarrage avec Docker
+## Demarrage avec Docker
 
 ```bash
 docker compose up --build
 ```
 
-Services exposés:
+Services exposes:
 
-- Frontend: `http://localhost:4200`
-- Backend: `http://localhost:8080`
+- frontend: `http://localhost:4200`
+- backend: `http://localhost:8080`
 - PostgreSQL: `localhost:5432`
 
-## Démarrage manuel
+Le backend monte le dossier OCI en lecture seule:
+
+```text
+${OCI_HOST_CONFIG_DIR:-./docker/oci-placeholder} -> /app/.oci
+```
+
+Les credentials OCI ne sont jamais copies dans l'image Docker.
+
+## Demarrage manuel
 
 Backend:
 
@@ -100,73 +131,94 @@ Le frontend utilise `proxy.conf.json` pour appeler `http://localhost:8080/api`.
 
 ## Login initial
 
-Compte MVP créé automatiquement au premier démarrage si absent:
+Compte cree automatiquement au premier demarrage si absent:
 
-- Username: `admin`
-- Password: valeur `DEFAULT_ADMIN_PASSWORD`, défaut local `admin`
+- username: `admin`
+- password: valeur `DEFAULT_ADMIN_PASSWORD`, par defaut `admin`
 
-Le mot de passe est toujours stocké avec BCrypt.
+## Configuration Mimir et Loki
 
-## Configuration Loki
+Les sources Mimir et Loki restent gerees par le backend.
 
-Cas sans auth:
-
-```env
-LOKI_BASE_URL=https://loki.example.com
-LOKI_API_PREFIX=/loki
-```
-
-Cas Basic Auth:
-
-```env
-LOKI_BASE_URL=https://loki.example.com
-LOKI_USERNAME=my-user
-LOKI_PASSWORD=my-password
-```
-
-Cas Bearer:
-
-```env
-LOKI_BASE_URL=https://loki.example.com
-LOKI_BEARER_TOKEN=my-token
-```
-
-## Configuration Mimir
-
-Cas sans auth:
+Exemple Mimir:
 
 ```env
 MIMIR_BASE_URL=https://mimir.example.com
 MIMIR_API_PREFIX=/prometheus
 ```
 
-Cas Basic Auth:
+Exemple Loki:
 
 ```env
-MIMIR_BASE_URL=https://mimir.example.com
-MIMIR_USERNAME=my-user
-MIMIR_PASSWORD=my-password
+LOKI_BASE_URL=https://loki.example.com
+LOKI_API_PREFIX=/loki
 ```
 
-Cas Bearer:
-
-```env
-MIMIR_BASE_URL=https://mimir.example.com
-MIMIR_BEARER_TOKEN=my-token
-```
-
-## Header X-Scope-OrgID
-
-Si vos tenants l’exigent:
+Si vos tenants l'exigent:
 
 ```env
 MIMIR_TENANT_ID=tenant-a
 LOKI_TENANT_ID=tenant-a
 ```
 
-Le backend ajoute alors `X-Scope-OrgID` uniquement côté serveur.
+## Configuration OCI
 
-## Tester les endpoints avec curl
+L'integration OCI est uniquement cote backend.
+
+Dossier local recommande:
+
+```text
+C:\Users\Safi\.oci-safi-monitoring
+```
+
+Structure attendue:
+
+```text
+C:\Users\Safi\.oci-safi-monitoring
+|-- config
+`-- oci_api_key.pem
+```
+
+Exemple de fichier `config`:
+
+```ini
+[DEFAULT]
+user=USER_OCID
+fingerprint=FINGERPRINT
+tenancy=TENANCY_OCID
+region=REGION
+key_file=/app/.oci/oci_api_key.pem
+```
+
+Variables OCI a completer apres l'implementation:
+
+```env
+OCI_ENABLED=true
+OCI_HOST_CONFIG_DIR=C:/Users/Safi/.oci-safi-monitoring
+OCI_CONFIG_FILE=/app/.oci/config
+OCI_PROFILE=DEFAULT
+OCI_REGION=
+OCI_COMPARTMENT_ID=
+OCI_DEFAULT_METRIC_NAMESPACE=oci_computeagent
+OCI_INCLUDE_SUBCOMPARTMENTS=false
+```
+
+Permissions IAM minimales:
+
+- lecture Monitoring
+- lecture Logging Search
+- lecture Compute
+- lecture Identity pour le test de connexion
+
+Ne jamais committer:
+
+- le vrai fichier `config` OCI
+- les fichiers `*.pem` ou `*.key`
+- `.env`
+
+Documentation detaillee: [docs/oci-integration.md](docs/oci-integration.md)
+
+## Endpoints utiles
 
 Login:
 
@@ -176,50 +228,69 @@ curl -X POST http://localhost:8080/api/auth/login \
   -d '{"username":"admin","password":"admin"}'
 ```
 
-Query metrics:
+Metriques Mimir:
 
 ```bash
 curl -X POST http://localhost:8080/api/monitoring/metrics/query-range \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"up","start":"2026-07-22T09:00:00Z","end":"2026-07-22T10:00:00Z","step":"60"}'
+  -d '{"query":"up","start":"2026-07-28T09:00:00Z","end":"2026-07-28T10:00:00Z","step":"60"}'
 ```
 
-Query logs:
+Logs Loki:
 
 ```bash
 curl -X POST http://localhost:8080/api/monitoring/logs/query-range \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"query":"{job=~\".+\"}","start":"2026-07-22T09:00:00Z","end":"2026-07-22T10:00:00Z","step":"60","limit":200,"direction":"BACKWARD"}'
+  -d '{"query":"{job=~\".+\"}","start":"2026-07-28T09:00:00Z","end":"2026-07-28T10:00:00Z","step":"60","limit":200,"direction":"BACKWARD"}'
 ```
 
-## Import des dashboards Grafana
+Sante OCI:
 
-- Le backend scanne `classpath*:grafana/*.json`
-- Les panels Grafana détectés sont convertis en dashboards natifs
-- Les variables `${cluster:regex}`, `${namespace:regex}`, `${pod:regex}`, `${node:regex}`, `$__rate_interval` sont substituées côté backend
-- Les variables inconnues sont refusées
+```bash
+curl http://localhost:8080/api/monitoring/oci/health \
+  -H "Authorization: Bearer <TOKEN>"
+```
 
-## Résolution des problèmes
-
-CORS:
-
-- Vérifier `FRONTEND_URL`
-- Utiliser le proxy Angular en local
+## Resolution des problemes
 
 401 / 403:
 
-- Refaire le login
-- Vérifier que le token JWT est bien présent dans `Authorization`
-- Les routes `/api/auth/login`, Swagger et `/api/health/**` restent publiques
+- refaire le login
+- verifier l'en-tete `Authorization`
 
 No data:
 
-- Vérifier les vrais endpoints Mimir/Loki
-- Vérifier les labels disponibles dans vos métriques
-- Vérifier les périodes sélectionnées
-- Vérifier `X-Scope-OrgID` si multi-tenant
+- verifier les vrais endpoints Mimir ou Loki
+- verifier la periode selectionnee
+- verifier les labels et namespaces disponibles
+
+OCI Not configured:
+
+- verifier `OCI_ENABLED`
+- verifier `OCI_CONFIG_FILE`
+- verifier `OCI_REGION`
+- verifier `OCI_COMPARTMENT_ID`
+- verifier le montage `${OCI_HOST_CONFIG_DIR}:/app/.oci:ro`
+
+OCI Invalid credentials:
+
+- verifier le fichier `config`
+- verifier la cle PEM
+- verifier le profil `OCI_PROFILE`
+
+OCI Permission denied:
+
+- verifier les policies IAM en lecture seule
+
+OCI Region unavailable:
+
+- verifier `OCI_REGION`
+
+OCI Timeout:
+
+- verifier le reseau sortant et `OCI_QUERY_TIMEOUT_SECONDS`
 
 ## Tests et build
 
@@ -239,12 +310,11 @@ npm test
 npm run build
 ```
 
-## Structure du projet
+## Structure
 
-- `backend/src/main/java/com/safistage/monitoring/auth`: login et changement de mot de passe
-- `backend/src/main/java/com/safistage/monitoring/datasource`: CRUD des data sources
-- `backend/src/main/java/com/safistage/monitoring/monitoring`: clients Mimir/Loki, validation, normalisation
-- `backend/src/main/java/com/safistage/monitoring/dashboard` et `panel`: dashboards natifs
+- `backend/src/main/java/com/safistage/monitoring/datasource`: CRUD des sources
+- `backend/src/main/java/com/safistage/monitoring/monitoring`: Mimir et Loki
+- `backend/src/main/java/com/safistage/monitoring/oci`: integration OCI
 - `frontend/src/app/features`: pages fonctionnelles
-- `frontend/src/app/shared/components`: composants réutilisables UI
-- `docs/`: documentation détaillée
+- `frontend/src/app/shared/components`: composants UI reutilisables
+- `docs/`: documentation complementaire

@@ -62,7 +62,13 @@ export class TimeSeriesChartComponent {
         type: 'line',
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: {
+          width: 2,
+          color: item.color
+        },
+        itemStyle: {
+          color: item.color
+        },
         data: item.points.map((point) => [point.timestamp, point.value])
       }))
     };

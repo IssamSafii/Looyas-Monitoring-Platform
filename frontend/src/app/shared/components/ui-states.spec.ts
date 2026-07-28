@@ -15,7 +15,7 @@ describe('UI state components', () => {
     await TestBed.configureTestingModule({ imports: [EmptyStateComponent] }).compileComponents();
     const fixture: ComponentFixture<EmptyStateComponent> = TestBed.createComponent(EmptyStateComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Aucune donnée');
+    expect(fixture.nativeElement.textContent).toContain('Aucune donnee');
   });
 
   it('should render error state message', async () => {
@@ -23,6 +23,6 @@ describe('UI state components', () => {
     const fixture: ComponentFixture<ErrorStateComponent> = TestBed.createComponent(ErrorStateComponent);
     fixture.componentInstance.message = 'Erreur';
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Impossible de récupérer les données');
+    expect(fixture.nativeElement.textContent).toContain('Impossible de recuperer les donnees');
   });
 });

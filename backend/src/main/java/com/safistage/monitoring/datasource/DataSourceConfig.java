@@ -40,6 +40,24 @@ public class DataSourceConfig {
     @Column(name = "encrypted_token")
     private String encryptedToken;
 
+    @Column(length = 100)
+    private String region;
+
+    @Column(name = "compartment_id", length = 255)
+    private String compartmentId;
+
+    @Column(length = 100)
+    private String profile;
+
+    @Column(name = "config_file", length = 500)
+    private String configFile;
+
+    @Column(name = "default_metric_namespace", length = 255)
+    private String defaultMetricNamespace;
+
+    @Column(name = "include_subcompartments", nullable = false)
+    private boolean includeSubcompartments;
+
     @Column(nullable = false)
     private boolean enabled = true;
 
@@ -143,5 +161,61 @@ public class DataSourceConfig {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public String getCompartmentId() {
+        return compartmentId;
+    }
+
+    public void setCompartmentId(String compartmentId) {
+        this.compartmentId = compartmentId;
+    }
+
+    public String getProfile() {
+        return profile;
+    }
+
+    public void setProfile(String profile) {
+        this.profile = profile;
+    }
+
+    public String getConfigFile() {
+        return configFile;
+    }
+
+    public void setConfigFile(String configFile) {
+        this.configFile = configFile;
+    }
+
+    public String getDefaultMetricNamespace() {
+        return defaultMetricNamespace;
+    }
+
+    public void setDefaultMetricNamespace(String defaultMetricNamespace) {
+        this.defaultMetricNamespace = defaultMetricNamespace;
+    }
+
+    public boolean isIncludeSubcompartments() {
+        return includeSubcompartments;
+    }
+
+    public void setIncludeSubcompartments(boolean includeSubcompartments) {
+        this.includeSubcompartments = includeSubcompartments;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

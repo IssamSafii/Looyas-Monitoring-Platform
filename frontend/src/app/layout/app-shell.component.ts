@@ -74,8 +74,10 @@ export class AppShellComponent {
   protected readonly username = computed(() => this.authService.session()?.username ?? 'admin');
   protected readonly navItems = [
     { path: '/overview', label: 'Overview' },
-    { path: '/infrastructure', label: 'Infrastructure' },
-    { path: '/kubernetes', label: 'Kubernetes' },
+    { path: '/oci', label: 'OCI Cloud' },
+    { path: '/oci/compute', label: 'OCI Compute' },
+    { path: '/oci/metrics', label: 'OCI Metrics' },
+    { path: '/oci/logs', label: 'OCI Logs' },
     { path: '/metrics-explorer', label: 'Metrics Explorer' },
     { path: '/logs-explorer', label: 'Logs Explorer' },
     { path: '/dashboards', label: 'Dashboards' },

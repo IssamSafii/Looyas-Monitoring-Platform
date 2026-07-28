@@ -6,3 +6,9 @@ frontend/.angular/
 frontend/coverage/
 frontend/node_modules/
 .env
+.oci/
+*.pem
+*.key
+oci_api_key*
+config.oci
+credentials/
