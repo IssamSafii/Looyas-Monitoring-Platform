@@ -124,3 +124,68 @@ export interface OciComputeInstance {
   timeCreated: string;
   cpuCurrent: number | null;
 }
+
+export interface OciWorkRequestResource {
+  actionType: string;
+  entityType: string;
+  identifier: string;
+  maskedIdentifier: string;
+}
+
+export interface OciWorkRequest {
+  id: string;
+  maskedId: string;
+  operationType: string;
+  status: string;
+  compartmentId: string;
+  maskedCompartmentId: string;
+  percentComplete: number | null;
+  timeAccepted: string | null;
+  timeStarted: string | null;
+  timeFinished: string | null;
+  resourceSummary: string;
+  resources: OciWorkRequestResource[];
+  errorMessage: string | null;
+  commonApiSupported: boolean;
+  supportMessage: string | null;
+}
+
+export interface OciWorkRequestsQuery {
+  compartmentId?: string | null;
+  status?: string | null;
+  operationType?: string | null;
+  resource?: string | null;
+  from?: string | null;
+  to?: string | null;
+  page?: number;
+  limit?: number;
+}
+
+export interface OciWorkRequestsPage {
+  items: OciWorkRequest[];
+  page: number;
+  limit: number;
+  hasNext: boolean;
+  partialSupport: boolean;
+  message: string;
+}
+
+export interface OciPaginatedResponse<T> {
+  items: T[];
+  limit: number;
+  nextPage: string | null;
+  hasNext: boolean;
+  partialSupport: boolean;
+  message: string | null;
+}
+
+export interface OciWorkRequestError {
+  code: string;
+  message: string;
+  timestamp: string | null;
+}
+
+export interface OciWorkRequestLog {
+  message: string;
+  timestamp: string | null;
+}

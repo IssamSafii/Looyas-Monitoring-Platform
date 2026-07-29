@@ -4,6 +4,7 @@ import com.oracle.bmc.ConfigFileReader;
 import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
 import com.oracle.bmc.identity.IdentityClient;
+import com.oracle.bmc.workrequests.WorkRequestClient;
 import com.oracle.bmc.loggingsearch.LogSearchClient;
 import com.oracle.bmc.monitoring.MonitoringClient;
 import com.oracle.bmc.core.ComputeClient;
@@ -90,6 +91,12 @@ public class OciClientFactory {
 
     public IdentityClient newIdentityClient(OciResolvedConfig config) {
         IdentityClient client = new IdentityClient(authenticationProvider(config));
+        client.setRegion(resolveRegion(config.region()));
+        return client;
+    }
+
+    public WorkRequestClient newWorkRequestClient(OciResolvedConfig config) {
+        WorkRequestClient client = new WorkRequestClient(authenticationProvider(config));
         client.setRegion(resolveRegion(config.region()));
         return client;
     }

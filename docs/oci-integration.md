@@ -105,6 +105,10 @@ La source OCI n'est pas encore configuree.
 - `POST /api/monitoring/oci/logs/search`
 - `GET /api/monitoring/oci/compute/instances`
 - `GET /api/monitoring/oci/compute/instances/{instanceId}`
+- `GET /api/monitoring/oci/work-requests`
+- `GET /api/monitoring/oci/work-requests/{id}`
+- `GET /api/monitoring/oci/work-requests/{id}/errors`
+- `GET /api/monitoring/oci/work-requests/{id}/logs`
 
 Tous les endpoints OCI, sauf la verification globale de sante applicative classique, restent proteges par JWT comme le reste de l'application.
 
@@ -126,6 +130,7 @@ docker compose up --build
    - `/oci/compute`
    - `/oci/metrics`
    - `/oci/logs`
+   - `/oci/work-requests`
 
 ## Resolution des erreurs
 

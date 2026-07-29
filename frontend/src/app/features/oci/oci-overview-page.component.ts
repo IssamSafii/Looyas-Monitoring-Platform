@@ -125,7 +125,7 @@ interface DataState<T> {
                 <div class="instance-head">
                   <div>
                     <strong>{{ instance.displayName || instance.maskedId }}</strong>
-                    <div class="muted">{{ instance.shape }} · {{ instance.region }}</div>
+                    <div class="muted">{{ instance.shape }} - {{ instance.region }}</div>
                   </div>
                   <span class="chip">{{ instance.lifecycleState }}</span>
                 </div>
@@ -774,9 +774,6 @@ export class OciOverviewPageComponent implements OnInit {
 
   private formatNetworkRate(bytesValue: number): string {
     const mbitValue = this.bytesToMbit(bytesValue);
-    if (mbitValue >= 1024) {
-      return `${this.formatDecimal(mbitValue / 1024)} Gbit`;
-    }
     return `${this.formatDecimal(mbitValue)} Mbit`;
   }
 

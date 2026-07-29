@@ -20,7 +20,7 @@ import { EmptyStateComponent } from './empty-state.component';
       </div>
 
       <app-loading-skeleton *ngIf="loading" [rows]="2" />
-      <app-empty-state *ngIf="!loading && noData" title="Aucune donnée reçue pour cette période." />
+      <app-empty-state *ngIf="!loading && noData" title="Aucune donnee recue pour cette periode." />
 
       <ng-container *ngIf="!loading && !noData">
         <div class="value-row">

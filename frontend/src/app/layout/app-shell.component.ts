@@ -78,6 +78,7 @@ export class AppShellComponent {
     { path: '/oci/compute', label: 'OCI Compute' },
     { path: '/oci/metrics', label: 'OCI Metrics' },
     { path: '/oci/logs', label: 'OCI Logs' },
+    { path: '/oci/work-requests', label: 'Work Requests' },
     { path: '/metrics-explorer', label: 'Metrics Explorer' },
     { path: '/logs-explorer', label: 'Logs Explorer' },
     { path: '/dashboards', label: 'Dashboards' },
